@@ -1,53 +1,54 @@
-@Origin hello_cosmos {
-    entropy: "0.5"
+@Origin[hello_cosmos] {
+    entropy: 0.5
     description: "A minimal living world example"
+    core_anchors: [big_bang]
 }
 
-@Timeline main {
-    origin: "hello_cosmos"
+@Timeline[main] {
+    origin: hello_cosmos
     description: "Main timeline of the cosmos"
 }
 
-@Event birth_of_stars {
+@Event[birth_of_stars] {
     emotion_peak: "wonder"
-    entropy_change: "0.1"
+    entropy_change: 0.1
     description: "The first stars are born"
 }
 
-@CoreEvent big_bang {
+@CoreEvent[big_bang] {
     emotion_peak: "creation"
-    entropy_change: "1.0"
+    entropy_change: 1.0
     description: "The beginning of everything"
 }
 
-@Niche star_lifecycle {
+@Niche[star_lifecycle] {
     strategy: "fusion_then_death"
     stress_response: "supernova"
     description: "The lifecycle of stars"
 }
 
-@Era stellar_era {
-    start: "big_bang"
-    end: "birth_of_stars"
+@Era[stellar_era] {
+    start: big_bang
+    end: birth_of_stars
     rules: "gravity_wells_form"
     description: "The era of star formation"
 }
 
->>Generator random_event {
+>>Generator[random_event] {
     source: "quantum_fluctuations"
-    output_type: "Event"
+    output_type: Event
     description: "Generates random quantum events"
 }
 
-@Memory historical_archive {
+@Memory[historical_archive] {
     storage_model: "compressed"
     retention_policy: "infinite"
     description: "Stores all historical events"
 }
 
-@Immune stability_guard {
+@Immune[stability_guard] {
     monitor_metric: "entropy"
-    threshold: "0.8"
+    threshold: 0.8
     action: "event_generation"
     description: "Maintains world stability by controlling entropy"
 }

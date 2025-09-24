@@ -1,6 +1,6 @@
 // ==============================
-// CLD v6 Grammar (PEG)
-// Target: pest (Rust), but portable
+// CLD v6 Grammar for pest (Rust)
+// Universal Living World OS
 // ==============================
 
 // Entry point
@@ -13,33 +13,38 @@ cld_file = { SOI ~ (origin | timeline | event | core_event | niche | era | gener
 WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
 COMMENT = _{ "#" ~ (!NEWLINE ~ ANY)* ~ NEWLINE? }
 
+// Identifier: letters, digits, underscores, hyphens (kebab-case friendly)
 identifier = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_" | "-")* }
 
-// Support multi-line strings with triple quotes (for descriptions)
+// String: single-line or triple-quoted multi-line
 string = _{
     "\"" ~ (!"\"" ~ ANY)* ~ "\"" |
     "\"\"\"" ~ (!("\"\"\"" ~ !("\"\"\"")) ~ ANY)* ~ "\"\"\""
 }
 
+// Number: integer or float, optional sign
 number = {
     ("+" | "-")? ~
     (ASCII_DIGIT+ ("." ASCII_DIGIT*)? | "." ASCII_DIGIT+)
 }
 
+// Boolean literal
 boolean = { "true" | "false" }
 
+// List: [ item1, item2, ... ]
 list = { "[" ~ (value ~ ("," ~ value)*)? ~ "]" }
 
+// Value: atomic or composite
 value = _{
     string |
     number |
     boolean |
     list |
-    identifier   // for enum-like values, e.g., 存储模型: 分层
+    identifier   // for enums, e.g., 存储模型: 分层
 }
 
 // ------------------------------
-// Core Citizens
+// Core Citizens (9 primary entities)
 // ------------------------------
 
 origin = { "@Origin" ~ "[" ~ identifier ~ "]" ~ "{" ~ origin_field* ~ "}" }
@@ -49,8 +54,9 @@ timeline = { "@Timeline" ~ "[" ~ identifier ~ "]" ~ "{" ~ timeline_field* ~ "}" 
 timeline_field = { identifier ~ ":" ~ value }
 
 event = { "@Event" ~ "[" ~ identifier ~ "]" ~ "{" ~ event_field* ~ "}" }
-core_event = { "@CoreEvent" ~ "[" ~ identifier ~ "]" ~ "{" ~ event_field* ~ "}" }
 event_field = { identifier ~ ":" ~ value }
+
+core_event = { "@CoreEvent" ~ "[" ~ identifier ~ "]" ~ "{" ~ event_field* ~ "}" }
 
 niche = { "@Niche" ~ "[" ~ identifier ~ "]" ~ "{" ~ niche_field* ~ "}" }
 niche_field = { identifier ~ ":" ~ value }

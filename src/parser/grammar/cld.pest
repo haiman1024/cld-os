@@ -1,43 +1,74 @@
-// CLD file grammar definition
-// Based on the 9 core citizens of CLD v6
+// ==============================
+// CLD v6 Grammar for pest (Rust)
+// Universal Living World OS
+// ==============================
 
-// Main rule for a CLD file
+// Entry point
 cld_file = { SOI ~ (origin | timeline | event | core_event | niche | era | generator | memory | immune)* ~ EOI }
 
-// Whitespace and comments
+// ------------------------------
+// Lexical rules
+// ------------------------------
+
 WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
 COMMENT = _{ "#" ~ (!NEWLINE ~ ANY)* ~ NEWLINE? }
 
-// Core citizens
-origin = { "@Origin" ~ identifier ~ "{" ~ (origin_field)* ~ "}" }
+// Identifier: letters, digits, underscores, hyphens, and unicode characters (for Chinese)
+identifier = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_" | "-")* }
+
+// String: single-line or triple-quoted multi-line
+string = @{ 
+    "\"" ~ (!"\"" ~ ANY)* ~ "\"" |
+    "\"\"\"" ~ (!("\"\"\"" ~ !("\"\"\"")) ~ ANY)* ~ "\"\"\""
+}
+
+// Number: integer or float, optional sign
+number = {
+    ("+" | "-")? ~
+    (ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT*)? | "." ~ ASCII_DIGIT+)
+}
+
+// Boolean literal
+boolean = { "true" | "false" }
+
+// List: [ item1, item2, ... ]
+list = { "[" ~ (value ~ ("," ~ value)*)? ~ "]" }
+
+// Value: atomic or composite
+value = _{
+    string |
+    number |
+    boolean |
+    list |
+    identifier   // for enums, e.g., 存储模型: 分层
+}
+
+// ------------------------------
+// Core Citizens (9 primary entities)
+// ------------------------------
+
+origin = { "@Origin" ~ "[" ~ identifier ~ "]" ~ "{" ~ origin_field* ~ "}" }
 origin_field = { identifier ~ ":" ~ value }
 
-timeline = { "@Timeline" ~ identifier ~ "{" ~ (timeline_field)* ~ "}" }
+timeline = { "@Timeline" ~ "[" ~ identifier ~ "]" ~ "{" ~ timeline_field* ~ "}" }
 timeline_field = { identifier ~ ":" ~ value }
 
-event = { "@Event" ~ identifier ~ "{" ~ (event_field)* ~ "}" }
+event = { "@Event" ~ "[" ~ identifier ~ "]" ~ "{" ~ event_field* ~ "}" }
 event_field = { identifier ~ ":" ~ value }
 
-core_event = { "@CoreEvent" ~ identifier ~ "{" ~ (event_field)* ~ "}" }
+core_event = { "@CoreEvent" ~ "[" ~ identifier ~ "]" ~ "{" ~ event_field* ~ "}" }
 
-niche = { "@Niche" ~ identifier ~ "{" ~ (niche_field)* ~ "}" }
+niche = { "@Niche" ~ "[" ~ identifier ~ "]" ~ "{" ~ niche_field* ~ "}" }
 niche_field = { identifier ~ ":" ~ value }
 
-era = { "@Era" ~ identifier ~ "{" ~ (era_field)* ~ "}" }
+era = { "@Era" ~ "[" ~ identifier ~ "]" ~ "{" ~ era_field* ~ "}" }
 era_field = { identifier ~ ":" ~ value }
 
-generator = { ">>Generator" ~ identifier ~ "{" ~ (generator_field)* ~ "}" }
+generator = { ">>Generator" ~ "[" ~ identifier ~ "]" ~ "{" ~ generator_field* ~ "}" }
 generator_field = { identifier ~ ":" ~ value }
 
-memory = { "@Memory" ~ identifier ~ "{" ~ (memory_field)* ~ "}" }
+memory = { "@Memory" ~ "[" ~ identifier ~ "]" ~ "{" ~ memory_field* ~ "}" }
 memory_field = { identifier ~ ":" ~ value }
 
-immune = { "@Immune" ~ identifier ~ "{" ~ (immune_field)* ~ "}" }
+immune = { "@Immune" ~ "[" ~ identifier ~ "]" ~ "{" ~ immune_field* ~ "}" }
 immune_field = { identifier ~ ":" ~ value }
-
-// Basic elements
-identifier = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
-value = { string | number | boolean | identifier }
-string = { "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
-number = { ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT*)? }
-boolean = { "true" | "false" }

@@ -73,16 +73,61 @@ pub enum Citizen {
     Immune(Immune),
 }
 
+fn parse_value(pair: pest::iterators::Pair<Rule>) -> Result<Value, Box<dyn std::error::Error>> {
+    match pair.as_rule() {
+        Rule::string => {
+            // Remove quotes from string value
+            let str_content = pair.as_str();
+            if str_content.starts_with("\"\"\"") && str_content.ends_with("\"\"\"") {
+                // Handle triple-quoted strings
+                Ok(Value::String(str_content[3..str_content.len()-3].to_string()))
+            } else if str_content.starts_with("\"") && str_content.ends_with("\"") {
+                // Handle regular quoted strings
+                Ok(Value::String(str_content[1..str_content.len()-1].to_string()))
+            } else {
+                Ok(Value::String(str_content.to_string()))
+            }
+        }
+        Rule::number => {
+            let num_str = pair.as_str();
+            let number = num_str.parse::<f64>()?;
+            Ok(Value::Number(number))
+        }
+        Rule::boolean => {
+            let bool_str = pair.as_str();
+            match bool_str {
+                "true" => Ok(Value::Boolean(true)),
+                "false" => Ok(Value::Boolean(false)),
+                _ => Err(format!("Invalid boolean value: {}", bool_str).into()),
+            }
+        }
+        Rule::list => {
+            let mut values = Vec::new();
+            for inner_pair in pair.into_inner() {
+                if inner_pair.as_rule() == Rule::value {
+                    values.push(parse_value(inner_pair)?);
+                }
+            }
+            Ok(Value::List(values))
+        }
+        Rule::identifier => {
+            Ok(Value::Identifier(pair.as_str().to_string()))
+        }
+        _ => Err(format!("Unexpected value rule: {:?}, text: {:?}", pair.as_rule(), pair.as_str()).into()),
+    }
+}
+
 fn parse_origin(pair: pest::iterators::Pair<Rule>) -> Result<Origin, Box<dyn std::error::Error>> {
     let mut inner = pair.into_inner();
-    let name = inner.next().unwrap().as_str().to_string();
+    let name = inner.next().ok_or("Missing origin name")?.as_str().to_string();
     let mut fields = std::collections::HashMap::new();
 
     for field in inner {
         if field.as_rule() == Rule::origin_field {
             let mut field_inner = field.into_inner();
-            let key = field_inner.next().unwrap().as_str().to_string();
-            let value = field_inner.next().unwrap().as_str().to_string();
+            let key = field_inner.next().ok_or("Missing field key")?.as_str().to_string();
+            let value_pair = field_inner.next().ok_or("Missing field value")?;
+            let value = parse_value(value_pair)?;
             fields.insert(key, value);
         }
     }
@@ -90,18 +135,17 @@ fn parse_origin(pair: pest::iterators::Pair<Rule>) -> Result<Origin, Box<dyn std
     Ok(Origin { name, fields })
 }
 
-fn parse_timeline(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<Timeline, Box<dyn std::error::Error>> {
+fn parse_timeline(pair: pest::iterators::Pair<Rule>) -> Result<Timeline, Box<dyn std::error::Error>> {
     let mut inner = pair.into_inner();
-    let name = inner.next().unwrap().as_str().to_string();
+    let name = inner.next().ok_or("Missing timeline name")?.as_str().to_string();
     let mut fields = std::collections::HashMap::new();
 
     for field in inner {
         if field.as_rule() == Rule::timeline_field {
             let mut field_inner = field.into_inner();
-            let key = field_inner.next().unwrap().as_str().to_string();
-            let value = field_inner.next().unwrap().as_str().to_string();
+            let key = field_inner.next().ok_or("Missing field key")?.as_str().to_string();
+            let value_pair = field_inner.next().ok_or("Missing field value")?;
+            let value = parse_value(value_pair)?;
             fields.insert(key, value);
         }
     }
@@ -111,14 +155,15 @@ fn parse_timeline(
 
 fn parse_event(pair: pest::iterators::Pair<Rule>) -> Result<Event, Box<dyn std::error::Error>> {
     let mut inner = pair.into_inner();
-    let name = inner.next().unwrap().as_str().to_string();
+    let name = inner.next().ok_or("Missing event name")?.as_str().to_string();
     let mut fields = std::collections::HashMap::new();
 
     for field in inner {
         if field.as_rule() == Rule::event_field {
             let mut field_inner = field.into_inner();
-            let key = field_inner.next().unwrap().as_str().to_string();
-            let value = field_inner.next().unwrap().as_str().to_string();
+            let key = field_inner.next().ok_or("Missing field key")?.as_str().to_string();
+            let value_pair = field_inner.next().ok_or("Missing field value")?;
+            let value = parse_value(value_pair)?;
             fields.insert(key, value);
         }
     }
@@ -126,18 +171,17 @@ fn parse_event(pair: pest::iterators::Pair<Rule>) -> Result<Event, Box<dyn std::
     Ok(Event { name, fields })
 }
 
-fn parse_core_event(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<CoreEvent, Box<dyn std::error::Error>> {
+fn parse_core_event(pair: pest::iterators::Pair<Rule>) -> Result<CoreEvent, Box<dyn std::error::Error>> {
     let mut inner = pair.into_inner();
-    let name = inner.next().unwrap().as_str().to_string();
+    let name = inner.next().ok_or("Missing core event name")?.as_str().to_string();
     let mut fields = std::collections::HashMap::new();
 
     for field in inner {
         if field.as_rule() == Rule::event_field {
             let mut field_inner = field.into_inner();
-            let key = field_inner.next().unwrap().as_str().to_string();
-            let value = field_inner.next().unwrap().as_str().to_string();
+            let key = field_inner.next().ok_or("Missing field key")?.as_str().to_string();
+            let value_pair = field_inner.next().ok_or("Missing field value")?;
+            let value = parse_value(value_pair)?;
             fields.insert(key, value);
         }
     }
@@ -147,14 +191,15 @@ fn parse_core_event(
 
 fn parse_niche(pair: pest::iterators::Pair<Rule>) -> Result<Niche, Box<dyn std::error::Error>> {
     let mut inner = pair.into_inner();
-    let name = inner.next().unwrap().as_str().to_string();
+    let name = inner.next().ok_or("Missing niche name")?.as_str().to_string();
     let mut fields = std::collections::HashMap::new();
 
     for field in inner {
         if field.as_rule() == Rule::niche_field {
             let mut field_inner = field.into_inner();
-            let key = field_inner.next().unwrap().as_str().to_string();
-            let value = field_inner.next().unwrap().as_str().to_string();
+            let key = field_inner.next().ok_or("Missing field key")?.as_str().to_string();
+            let value_pair = field_inner.next().ok_or("Missing field value")?;
+            let value = parse_value(value_pair)?;
             fields.insert(key, value);
         }
     }
@@ -164,14 +209,15 @@ fn parse_niche(pair: pest::iterators::Pair<Rule>) -> Result<Niche, Box<dyn std::
 
 fn parse_era(pair: pest::iterators::Pair<Rule>) -> Result<Era, Box<dyn std::error::Error>> {
     let mut inner = pair.into_inner();
-    let name = inner.next().unwrap().as_str().to_string();
+    let name = inner.next().ok_or("Missing era name")?.as_str().to_string();
     let mut fields = std::collections::HashMap::new();
 
     for field in inner {
         if field.as_rule() == Rule::era_field {
             let mut field_inner = field.into_inner();
-            let key = field_inner.next().unwrap().as_str().to_string();
-            let value = field_inner.next().unwrap().as_str().to_string();
+            let key = field_inner.next().ok_or("Missing field key")?.as_str().to_string();
+            let value_pair = field_inner.next().ok_or("Missing field value")?;
+            let value = parse_value(value_pair)?;
             fields.insert(key, value);
         }
     }
@@ -179,18 +225,17 @@ fn parse_era(pair: pest::iterators::Pair<Rule>) -> Result<Era, Box<dyn std::erro
     Ok(Era { name, fields })
 }
 
-fn parse_generator(
-    pair: pest::iterators::Pair<Rule>,
-) -> Result<Generator, Box<dyn std::error::Error>> {
+fn parse_generator(pair: pest::iterators::Pair<Rule>) -> Result<Generator, Box<dyn std::error::Error>> {
     let mut inner = pair.into_inner();
-    let name = inner.next().unwrap().as_str().to_string();
+    let name = inner.next().ok_or("Missing generator name")?.as_str().to_string();
     let mut fields = std::collections::HashMap::new();
 
     for field in inner {
         if field.as_rule() == Rule::generator_field {
             let mut field_inner = field.into_inner();
-            let key = field_inner.next().unwrap().as_str().to_string();
-            let value = field_inner.next().unwrap().as_str().to_string();
+            let key = field_inner.next().ok_or("Missing field key")?.as_str().to_string();
+            let value_pair = field_inner.next().ok_or("Missing field value")?;
+            let value = parse_value(value_pair)?;
             fields.insert(key, value);
         }
     }
@@ -200,14 +245,15 @@ fn parse_generator(
 
 fn parse_memory(pair: pest::iterators::Pair<Rule>) -> Result<Memory, Box<dyn std::error::Error>> {
     let mut inner = pair.into_inner();
-    let name = inner.next().unwrap().as_str().to_string();
+    let name = inner.next().ok_or("Missing memory name")?.as_str().to_string();
     let mut fields = std::collections::HashMap::new();
 
     for field in inner {
         if field.as_rule() == Rule::memory_field {
             let mut field_inner = field.into_inner();
-            let key = field_inner.next().unwrap().as_str().to_string();
-            let value = field_inner.next().unwrap().as_str().to_string();
+            let key = field_inner.next().ok_or("Missing field key")?.as_str().to_string();
+            let value_pair = field_inner.next().ok_or("Missing field value")?;
+            let value = parse_value(value_pair)?;
             fields.insert(key, value);
         }
     }
@@ -217,14 +263,15 @@ fn parse_memory(pair: pest::iterators::Pair<Rule>) -> Result<Memory, Box<dyn std
 
 fn parse_immune(pair: pest::iterators::Pair<Rule>) -> Result<Immune, Box<dyn std::error::Error>> {
     let mut inner = pair.into_inner();
-    let name = inner.next().unwrap().as_str().to_string();
+    let name = inner.next().ok_or("Missing immune name")?.as_str().to_string();
     let mut fields = std::collections::HashMap::new();
 
     for field in inner {
         if field.as_rule() == Rule::immune_field {
             let mut field_inner = field.into_inner();
-            let key = field_inner.next().unwrap().as_str().to_string();
-            let value = field_inner.next().unwrap().as_str().to_string();
+            let key = field_inner.next().ok_or("Missing field key")?.as_str().to_string();
+            let value_pair = field_inner.next().ok_or("Missing field value")?;
+            let value = parse_value(value_pair)?;
             fields.insert(key, value);
         }
     }
