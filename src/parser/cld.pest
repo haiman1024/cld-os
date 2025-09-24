@@ -1,0 +1,68 @@
+// ==============================
+// CLD v6 Grammar (PEG)
+// Target: pest (Rust), but portable
+// ==============================
+
+// Entry point
+cld_file = { SOI ~ (origin | timeline | event | core_event | niche | era | generator | memory | immune)* ~ EOI }
+
+// ------------------------------
+// Lexical rules
+// ------------------------------
+
+WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
+COMMENT = _{ "#" ~ (!NEWLINE ~ ANY)* ~ NEWLINE? }
+
+identifier = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_" | "-")* }
+
+// Support multi-line strings with triple quotes (for descriptions)
+string = _{
+    "\"" ~ (!"\"" ~ ANY)* ~ "\"" |
+    "\"\"\"" ~ (!("\"\"\"" ~ !("\"\"\"")) ~ ANY)* ~ "\"\"\""
+}
+
+number = {
+    ("+" | "-")? ~
+    (ASCII_DIGIT+ ("." ASCII_DIGIT*)? | "." ASCII_DIGIT+)
+}
+
+boolean = { "true" | "false" }
+
+list = { "[" ~ (value ~ ("," ~ value)*)? ~ "]" }
+
+value = _{
+    string |
+    number |
+    boolean |
+    list |
+    identifier   // for enum-like values, e.g., 存储模型: 分层
+}
+
+// ------------------------------
+// Core Citizens
+// ------------------------------
+
+origin = { "@Origin" ~ "[" ~ identifier ~ "]" ~ "{" ~ origin_field* ~ "}" }
+origin_field = { identifier ~ ":" ~ value }
+
+timeline = { "@Timeline" ~ "[" ~ identifier ~ "]" ~ "{" ~ timeline_field* ~ "}" }
+timeline_field = { identifier ~ ":" ~ value }
+
+event = { "@Event" ~ "[" ~ identifier ~ "]" ~ "{" ~ event_field* ~ "}" }
+core_event = { "@CoreEvent" ~ "[" ~ identifier ~ "]" ~ "{" ~ event_field* ~ "}" }
+event_field = { identifier ~ ":" ~ value }
+
+niche = { "@Niche" ~ "[" ~ identifier ~ "]" ~ "{" ~ niche_field* ~ "}" }
+niche_field = { identifier ~ ":" ~ value }
+
+era = { "@Era" ~ "[" ~ identifier ~ "]" ~ "{" ~ era_field* ~ "}" }
+era_field = { identifier ~ ":" ~ value }
+
+generator = { ">>Generator" ~ "[" ~ identifier ~ "]" ~ "{" ~ generator_field* ~ "}" }
+generator_field = { identifier ~ ":" ~ value }
+
+memory = { "@Memory" ~ "[" ~ identifier ~ "]" ~ "{" ~ memory_field* ~ "}" }
+memory_field = { identifier ~ ":" ~ value }
+
+immune = { "@Immune" ~ "[" ~ identifier ~ "]" ~ "{" ~ immune_field* ~ "}" }
+immune_field = { identifier ~ ":" ~ value }
